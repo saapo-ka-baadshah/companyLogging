@@ -1,15 +1,36 @@
-require('dotenv').config();
-const httpObj = require('axios');
+var assert = require('assert');
+var fs = require('fs');
+var PlaceSearch = require('googleplaces/lib/PlaceSearch');
+var json2xls = require('json2xls');
 
-var url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
-var center = "location="+process.env.CENTER;
-var radius = "radius="+process.env.RADIUS;
-var keyword= "keyword="+process.env.KEYWORD;
-var APIkey= "key="+process.env.APIKey;
-console.log(url+'&'+center+'&'+radius+'&'+keyword+'&'+APIkey);
+var placeSearch = new PlaceSearch("YourAPIKey", "json");
+var outputFilePath = "";
 
-httpObj.get(url+'&'+center+'&'+radius+'&'+keyword+'&'+APIkey).then((resp) => {
-    console.log(resp.data);
-  }).catch((err) => {
-    console.log("Error: " + err.message);
-  });
+var params = {};
+
+process.argv.forEach((val, i, array) => {
+  if(i > 1){
+    var arr = val.split('=');
+    if(arr.length == 2){
+      if(String(arr[0]) == "output" ){
+        outputFilePath = String(arr[1]);
+      }
+      else{
+        params[String(arr[0])] = arr[1];
+      }
+      
+    }
+    else {
+      console.log("Pass correct arguments\n", arr, i);
+    }
+  }
+});
+
+placeSearch(params, function (error, response) {
+
+    var xls = json2xls(response.results); 
+    fs.writeFileSync(outputFilePath+'.xlsx', xls, 'binary');
+    console.log("File saved to : ", outputFilePath+".xls");
+    if (error) throw error;
+    assert.notEqual(response.results.length, 0, "Place search must not return 0 results");
+});
